@@ -1,0 +1,206 @@
+{
+ "source": "darkmastermindz/bob data/build.json receipts",
+ "snapshot": "2026-10-10",
+ "receipts": [
+  {
+   "store": "Home Depot",
+   "date": "2026-10-01",
+   "subtotal_usd": 206.01,
+   "tax_usd": 17,
+   "total_usd": 223.01,
+   "lines": [
+    [
+     "36 in. heavy-duty cable tie, black",
+     4,
+     16.36
+    ],
+    [
+     "1-1/2\" DWV sani tee HxHxH",
+     4,
+     3.76
+    ],
+    [
+     "1-1/2\" DWV 45° elbow HxH",
+     5,
+     2.56
+    ],
+    [
+     "1-1/2\" DWV double sani tee HxHxHxH",
+     3,
+     7.23
+    ],
+    [
+     "1-1/2\" DWV coupling HxH",
+     4,
+     1.36
+    ],
+    [
+     "1-1/2\" PVC DWV hub cap",
+     4,
+     2.09
+    ],
+    [
+     "1-1/2\" DWV 90° elbow HxH",
+     16,
+     1.09
+    ],
+    [
+     "1-1/2\" x 10' PVC40-DWV PE pipe",
+     5,
+     11.96
+    ]
+   ]
+  },
+  {
+   "store": "Amazon",
+   "date": "2026-10",
+   "total_usd": null,
+   "lines": [
+    [
+     "Zernmiarder 1-1/2\" 4-way side-outlet tee, 12-pack",
+     2,
+     null
+    ]
+   ]
+  },
+  {
+   "store": "Amazon",
+   "date": "2026-10-03",
+   "total_usd": 95.19,
+   "lines": [
+    [
+     "5 Way PVC Fittings 1-1/2\", 4-pack",
+     2,
+     22.46
+    ],
+    [
+     "EPHECH 1-1/2\" 5-way furniture-grade fitting, 4-pack",
+     1,
+     22.46
+    ],
+    [
+     "ANPTGHT 1-1/2\" 5-way furniture-grade fitting, 4-pack",
+     1,
+     27.81
+    ]
+   ]
+  },
+  {
+   "store": "Lowe's",
+   "date": "2026-10-03",
+   "subtotal_usd": 326.06,
+   "tax_usd": 22.82,
+   "total_usd": 348.88,
+   "lines": [
+    [
+     "Krylon Fusion 12 oz matte red pepper",
+     1,
+     7.48
+    ],
+    [
+     "Rust-Oleum 12 oz multicolor textured stone",
+     2,
+     11.98
+    ],
+    [
+     "Krylon Fusion 12 oz gloss sunbeam",
+     1,
+     7.48
+    ],
+    [
+     "Krylon Fusion 12 oz satin white",
+     1,
+     7.48
+    ],
+    [
+     "Krylon Fusion 12 oz matte black",
+     1,
+     7.48
+    ],
+    [
+     "Krylon 11 oz chalky clear",
+     2,
+     10.98
+    ],
+    [
+     "Flex Glue clear 4 oz",
+     1,
+     14.99
+    ],
+    [
+     "Flex Seal 2 oz clear spray",
+     1,
+     6.99
+    ],
+    [
+     "300 ft natural twisted sisal twine",
+     1,
+     6.98
+    ],
+    [
+     "ScotchBlue 1.41 in painter's tape",
+     1,
+     7.28
+    ],
+    [
+     "Oatey 16 oz PVC cement",
+     1,
+     10.28
+    ],
+    [
+     "PTFE tape 1/2 in x 43 ft",
+     1,
+     1.98
+    ],
+    [
+     "8 in black cable tie, 100-pack",
+     1,
+     10.98
+    ],
+    [
+     "Sharpie Magnum jumbo, black",
+     1,
+     3.98
+    ],
+    [
+     "1-1/2 in x 10 ft Sch 40 PVC pipe",
+     1,
+     11.96
+    ],
+    [
+     "26 x 96 PVCLite PVC panel, beige",
+     4,
+     18.48
+    ],
+    [
+     "1-1/2 in x 8 ft cap (BRCAP18)",
+     4,
+     1.24
+    ],
+    [
+     "24 x 36 corrugated plastic, white",
+     3,
+     11.98
+    ],
+    [
+     "2 in x 4 ft x 8 ft insulation board",
+     1,
+     59.98
+    ]
+   ]
+  },
+  {
+   "store": "Lowe's",
+   "date": "2026-10-05",
+   "subtotal_usd": 11.96,
+   "total_usd": null,
+   "lines": [
+    [
+     "1-1/2 in x 10 ft Sch 40 PVC pipe (Charlotte Pipe)",
+     1,
+     11.96
+    ]
+   ]
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "receipts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Track BOB build receipts and returns: OCR line items, consumed vs returned by shop, verify with return receipts. PII redacted, metadata stripped.",
+  "type": "module",
+  "license": "GPL-3.0",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test tests/*.test.js",
+    "dev": "node scripts/build.js && node scripts/serve.js",
+    "start": "node scripts/serve.js",
+    "test:e2e": "node tests/e2e/flow.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.130.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "tesseract.js": "^5.1.1",
+    "tesseract.js-core": "^5.1.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

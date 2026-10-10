@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BOB Returns</title>
+  <meta name="description" content="Track receipts and returns for the BOB boat build. Reads line items from photos on your device, strips metadata and redacts personal info.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' https://api.anthropic.com; img-src 'self' blob: data:; style-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#1f5f6b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1a1d" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="BOB Returns">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="assets/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#/"><img src="icons/icon.svg" alt="" width="28" height="28"> BOB Returns</a>
+    <span class="local" title="Receipts are stored only in this browser">🔒 On this device</span>
+  </header>
+  <main id="main" tabindex="-1"><p class="empty">Loading…</p></main>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#/"><span aria-hidden="true">📊</span>Summary</a>
+    <a href="#/receipts"><span aria-hidden="true">🧾</span>Receipts</a>
+    <a href="#/add/purchase" class="add"><span aria-hidden="true">＋</span>Scan</a>
+    <a href="#/todo"><span aria-hidden="true">↩️</span>Returns<b id="todo-badge" hidden></b></a>
+    <a href="#/settings"><span aria-hidden="true">⚙️</span>Settings</a>
+  </nav>
+  <div id="toasts" aria-live="polite"></div>
+  <noscript><p class="empty">This app needs JavaScript.</p></noscript>
+</body>
+</html>
