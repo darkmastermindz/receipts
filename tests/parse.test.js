@@ -110,3 +110,24 @@ test('dates and store keys', () => {
   assert.equal(storeKey("LOWE'S #1234"), storeKey('Lowes'));
   assert.equal(storeKey('The Home Depot'), storeKey('HOME DEPOT #4521'));
 });
+
+test('hardware names that contain discount, tender or date-like words stay items', () => {
+  const r = parseReceipt(`HOME DEPOT
+10/03/26 02:14 PM
+PVC PIPE 10FT 11.96
+FLAP DISC 60 GRIT 8.97
+CHECK VALVE 1-1/2 IN 24.98
+SOLDER TIP 3.98
+1/4-20 X 1 IN HEX BOLT 0.98
+CASH 50.87
+CHANGE 0.00`);
+  assert.deepEqual(r.items.map((i) => [i.desc, i.total]), [
+    ['PVC PIPE 10FT', 11.96],
+    ['FLAP DISC 60 GRIT', 8.97],
+    ['CHECK VALVE 1-1/2 IN', 24.98],
+    ['SOLDER TIP', 3.98],
+    ['1/4-20 X 1 IN HEX BOLT', 0.98],
+  ]);
+  assert.equal(r.date, '2026-10-03');
+  assert.equal(detectDate('1/4-20 X 1 IN HEX BOLT 0.98\nThanks 10/03/26'), '2026-10-03');
+});

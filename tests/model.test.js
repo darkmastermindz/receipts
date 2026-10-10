@@ -75,6 +75,20 @@ test('return receipt matches by sku/price and verifies items', () => {
   assert.equal(hd.items[0].refund, null);
 });
 
+test('deleting a return receipt restores the previous status', () => {
+  const { hd } = fixture();
+  const ret = newReceipt({ kind: 'return', store: 'Home Depot', lines: [{ desc: 'HEAVY DUTY CABLE TIE 36IN', qty: 1, amount: 25.16 }] });
+  const m = matchReturn(ret, [hd]);
+  assert.equal(m[0].itemId, hd.items[2].id);
+  assert.equal(hd.items[2].status, STATUS.consumed);
+  applyReturn(ret, m, [hd]);
+  assert.equal(hd.items[2].status, STATUS.returned);
+  unapplyReturn(ret, [hd]);
+  assert.equal(hd.items[2].status, STATUS.consumed, 'back to consumed, not "to return"');
+  assert.equal(hd.items[2].returnQty, 1);
+  assert.equal(hd.items[2].before, undefined);
+});
+
 test('returns never match another shop', () => {
   const { hd, lw } = fixture();
   const ret = newReceipt({ kind: 'return', store: 'Home Depot', lines: [{ desc: 'INSULATION BOARD 2IN', qty: 1, amount: 59.98 }] });

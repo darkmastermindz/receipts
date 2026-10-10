@@ -39,9 +39,11 @@ function toast(msg, kind = '') {
 
 // ---- state ------------------------------------------------------------------
 
+const defaultSettings = () => ({ keepImage: true, withTax: false, apiKey: '', claude: false });
+
 const state = {
   receipts: [],
-  settings: { keepImage: true, withTax: false, apiKey: '', claude: false },
+  settings: defaultSettings(),
   draft: null, // in-progress capture (memory only)
 };
 
@@ -417,8 +419,8 @@ function viewAdd(kind, shop) {
   if (d.ocrText) wrap.append(h('details', { class: 'card' }, h('summary', {}, 'Text read from the photo (after redaction)'), h('pre', {}, d.ocrText)));
   wrap.append(h('div', { class: 'actions sticky' },
     h('button', { class: 'btn', onclick: () => { state.draft = null; location.hash = kind === 'return' ? '#/todo' : '#/receipts'; } }, 'Cancel'),
-    state.settings.claude && state.settings.apiKey && d.canvas ? h('button', { class: 'btn', onclick: enhance }, '✨ Re-read with Claude') : null,
-    h('button', { class: 'btn primary', onclick: saveDraft }, kind === 'return' ? 'Save & verify' : 'Save receipt')));
+    state.settings.claude && state.settings.apiKey && d.canvas ? h('button', { class: 'btn', disabled: d.busy, onclick: enhance }, d.busy ? 'Reading with Claude…' : '✨ Re-read with Claude') : null,
+    h('button', { class: 'btn primary', disabled: d.busy, onclick: saveDraft }, kind === 'return' ? 'Save & verify' : 'Save receipt')));
   return wrap;
 }
 
@@ -479,6 +481,7 @@ function previewPanel(d) {
 
 function setWork(message, progress) {
   const d = state.draft;
+  if (!d) return; // the user left the scan screen
   d.message = message;
   d.progress = progress;
   const m = $('#work-msg'), p = $('#work-progress');
@@ -504,20 +507,26 @@ function fromParsed(d, parsed, source) {
   return rec;
 }
 
+// Thrown when the user navigates away while a scan is still running.
+class Abandoned extends Error {}
+
 async function processPhotos(files) {
   const d = state.draft;
+  const live = () => { if (state.draft !== d) throw new Abandoned(); };
   d.step = 'working';
   render();
   try {
     setWork('Removing photo metadata…');
     d.metadata = [...new Set((await Promise.all(files.map(inspectMetadata))).flat())];
     d.canvas = await loadPhotos(files);
+    live();
     setWork('Reading text on this device… (first run loads the OCR model)', null);
     const { recognize } = await import('./ocr.js');
     const ocr = await recognize(d.canvas, (m) => {
       if (m.status === 'recognizing text') setWork(`Reading text on this device… ${Math.round(m.progress * 100)}%`, m.progress);
       else if (m.status && /load|init/i.test(m.status)) setWork(`Preparing OCR: ${m.status}…`, m.progress ?? null);
     });
+    live();
     setWork('Removing personal information…');
     const raw = ocr.lines.map((l) => l.text).join('\n');
     const red = redactText(raw);
@@ -537,6 +546,7 @@ async function processPhotos(files) {
       return;
     }
   } catch (e) {
+    if (e instanceof Abandoned || state.draft !== d) return;
     console.error(e);
     toast(`Couldn’t read the photo: ${e.message}`, 'error');
     d.step = d.canvas ? 'review' : 'choose';
@@ -547,14 +557,15 @@ async function processPhotos(files) {
 
 async function enhance() {
   const d = state.draft;
-  if (!d?.canvas) return;
-  const btns = document.querySelectorAll('.actions button');
-  btns.forEach((b) => (b.disabled = true));
+  if (!d?.canvas || d.busy) return;
+  d.busy = true;
+  render();
   toast('Sending the redacted image to Claude…');
   try {
     const { extractWithClaude } = await import('./claude.js');
     const jpeg = await toCleanJpeg(redactedCopy(d.canvas, d.boxes), 1800, 0.85);
     const parsed = await extractWithClaude(state.settings.apiKey, await blobToBase64(jpeg));
+    if (state.draft !== d) return; // the user left the scan screen
     if (!parsed.items.length) throw new Error('Claude found no line items.');
     const prev = d.receipt;
     d.receipt = fromParsed(d, { ...parsed, store: parsed.store || prev.store, date: parsed.date || prev.date }, 'claude');
@@ -562,19 +573,23 @@ async function enhance() {
     d.matches = null;
     toast(`Claude read ${parsed.items.length} line${parsed.items.length === 1 ? '' : 's'}.`, 'ok');
   } catch (e) {
+    if (state.draft !== d) return;
     const { describeError } = await import('./claude.js').catch(() => ({ describeError: (x) => x.message }));
     toast(describeError(e), 'error');
+  } finally {
+    d.busy = false;
   }
-  render();
+  if (state.draft === d) render();
 }
 
 async function saveDraft() {
   const d = state.draft;
+  if (!d || d.busy) return;
   const rec = d.receipt;
   rec.store = canonicalStore(rec.store);
   if (!rec.store) { toast('Add the shop name first.', 'warn'); return; }
   // Last line of defense: no PII in any stored string.
-  for (const it of rec.kind === 'return' ? rec.lines : rec.items) if (classifyLine(it.desc).length) it.desc = '[redacted]';
+  for (const it of rec.kind === 'return' ? rec.lines : rec.items) if (classifyLine(it.desc, { item: true }).length) it.desc = '[redacted]';
   if (d.canvas && d.keepImage) rec.image = await toCleanJpeg(redactedCopy(d.canvas, d.boxes));
   rec.redactions = (d.flagged?.length || 0) + (d.boxes?.filter((b) => b.manual).length || 0);
   if (rec.kind === 'return') {
@@ -598,7 +613,11 @@ function viewReceipt(id) {
   const wrap = h('section', { class: 'view' });
   if (!rec) { wrap.append(h('p', { class: 'empty' }, 'Receipt not found.'), h('a', { class: 'btn', href: '#/receipts' }, 'Back')); return wrap; }
   let dirty = false;
-  const persist = debounce(async () => { await save(rec); dirty = false; }, 400);
+  const persist = debounce(async () => {
+    if (deletedIds.has(rec.id)) return; // deleted while a save was pending
+    await save(rec);
+    dirty = false;
+  }, 400);
   const changed = (full) => { dirty = true; persist(); if (full) { render(); } else warn.update(); };
   const warn = warningsBox(rec);
   wrap.append(h('div', { class: 'view-head' },
@@ -636,6 +655,8 @@ function viewReceipt(id) {
     h('button', { class: 'btn danger', onclick: async () => {
       if (!confirm(rec.kind === 'return' ? 'Delete this return receipt? Items it verified go back to “To return”.' : 'Delete this receipt and its items?')) return;
       if (rec.kind === 'return') await save(...unapplyReturn(rec, purchases()));
+      deletedIds.add(rec.id);
+      dirty = false;
       await db.remove(rec.id);
       state.receipts = state.receipts.filter((r) => r.id !== rec.id);
       location.hash = '#/receipts';
@@ -644,6 +665,8 @@ function viewReceipt(id) {
   window.onbeforeunload = () => (dirty ? true : undefined);
   return wrap;
 }
+
+const deletedIds = new Set();
 
 function debounce(fn, ms) {
   let t;
@@ -720,7 +743,7 @@ function viewSettings() {
         try {
           const data = JSON.parse(await f.text());
           if (!Array.isArray(data.receipts)) throw new Error('missing receipts');
-          const recs = data.receipts.map((r) => ({ ...newReceipt(r), ...r, id: r.id || uid(), image: null }));
+          const recs = data.receipts.map((r) => ({ ...newReceipt(r), ...r, id: r.id || uid(), image: byId(r.id)?.image ?? null }));
           await save(...recs);
           toast(`Restored ${recs.length} receipts.`, 'ok');
           render();
@@ -730,6 +753,7 @@ function viewSettings() {
         if (!confirm('Delete every receipt, photo and setting on this device?')) return;
         await db.clearAll();
         await db.clearSettings();
+        state.settings = defaultSettings(); // drop the API key from memory too
         state.receipts = [];
         toast('All data deleted.');
         location.hash = '#/';

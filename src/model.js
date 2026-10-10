@@ -192,6 +192,9 @@ export function applyReturn(returnReceipt, matches, purchases) {
     const it = r?.items.find((i) => i.id === m.itemId);
     if (!it) continue;
     const qty = Number(m.line.qty) || 1;
+    // Remember what the item was before its first verification so deleting
+    // the return receipt can put it back.
+    if (!it.verifiedBy.length) it.before = { status: it.status, returnQty: it.returnQty };
     it.verifiedQty = Math.min(it.qty, (it.verifiedQty || 0) + qty);
     it.returnQty = Math.max(it.verifiedQty, it.status !== STATUS.consumed ? it.returnQty : 0);
     it.status = STATUS.returned;
@@ -215,7 +218,12 @@ export function unapplyReturn(returnReceipt, purchases) {
     it.verifiedQty = Math.max(0, (it.verifiedQty || 0) - qty);
     it.refund = it.refund != null ? round2(Math.max(0, it.refund - Math.abs(Number(line.amount) || 0))) : null;
     it.verifiedBy = it.verifiedBy.filter((id) => id !== returnReceipt.id);
-    if (!it.verifiedBy.length) { it.refund = null; it.status = STATUS.return; }
+    if (!it.verifiedBy.length) {
+      it.refund = null;
+      it.status = it.before?.status ?? STATUS.return;
+      if (it.before) it.returnQty = it.before.returnQty;
+      delete it.before;
+    }
     touched.add(r);
   }
   return [...touched];

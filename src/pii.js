@@ -58,15 +58,20 @@ function hasCardNumber(line) {
   return false;
 }
 
-/** Returns the PII categories found on one line (empty when clean). */
-export function classifyLine(line) {
+/**
+ * Returns the PII categories found on one line (empty when clean).
+ * With { item: true } the text is a product description, whose sizes and
+ * abbreviations ("100 CT", "SPEED SQUARE", "ST ELL") look like street
+ * addresses, so address rules are skipped.
+ */
+export function classifyLine(line, { item = false } = {}) {
   const reasons = new Set();
   if (!line || !line.trim()) return [];
   if (hasCardNumber(line)) reasons.add('card');
   // Item lines end in a price; their sizes and SKUs ("5 Way PVC", "GLOSS BK
   // 12345") can look like street or ZIP fragments, so addresses are only
   // matched on lines without a trailing price.
-  const priced = ENDS_WITH_PRICE.test(line);
+  const priced = item || ENDS_WITH_PRICE.test(line);
   for (const [reason, re] of RULES) {
     if (reason === 'address' && priced) continue;
     if (re.test(line)) reasons.add(reason);
@@ -94,9 +99,9 @@ export function redactText(text) {
   return { text: lines.join('\n'), lines, flagged, count: flagged.length };
 }
 
-/** Scrubs a single free-text value (e.g. an item description) in place. */
+/** Scrubs a single item description or store name. */
 export function scrubValue(value) {
   if (value == null) return value;
   const s = String(value);
-  return classifyLine(s).length ? REDACTED : s;
+  return classifyLine(s, { item: true }).length ? REDACTED : s;
 }

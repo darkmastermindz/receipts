@@ -162,6 +162,14 @@ await page.goto(BASE + '#/');
 await page.waitForSelector('text=Amazon');
 await page.screenshot({ path: `${OUT}/6-with-bob.png`, fullPage: true });
 
+// Leaving the scan screen while OCR runs must not raise an error.
+await page.goto(BASE + '#/add/purchase');
+await page.locator('input[type=file]:not([capture])').setInputFiles(p1);
+await page.waitForSelector('.working');
+await page.goto(BASE + '#/');
+await page.waitForTimeout(8000);
+check(!(await page.locator('.toast.error').count()), 'no error after leaving a scan mid-OCR');
+
 // Dark mode render
 await page.emulateMedia({ colorScheme: 'dark' });
 await page.screenshot({ path: `${OUT}/7-dark.png`, fullPage: true });

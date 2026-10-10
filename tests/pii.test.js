@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyLine, luhnValid, redactText } from '../src/pii.js';
+import { classifyLine, luhnValid, redactText, scrubValue } from '../src/pii.js';
 
 test('flags payment, contact and address lines', () => {
   const pii = [
@@ -56,4 +56,13 @@ test('redactText replaces flagged lines and counts them', () => {
   assert.equal(r.lines[0], 'HOME DEPOT');
   assert.match(r.lines[1], /^\[redacted\] \(address\)/);
   assert.equal(r.lines[2], 'TEE 3.76');
+});
+
+test('item descriptions are not mistaken for street addresses', () => {
+  for (const d of ['CABLE TIE 8 IN 100 CT', '7 IN SPEED SQUARE', '1-1/2 IN PVC ST ELL', '2 IN HOOK AND LOOP']) {
+    assert.deepEqual(classifyLine(d, { item: true }), [], d);
+    assert.equal(scrubValue(d), d);
+  }
+  assert.equal(scrubValue('VISA ************1234'), '[redacted]');
+  assert.equal(scrubValue('call 704-555-0199'), '[redacted]');
 });

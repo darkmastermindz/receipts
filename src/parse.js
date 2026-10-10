@@ -67,13 +67,21 @@ const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8,
 const pad = (n) => String(n).padStart(2, '0');
 
 export function detectDate(text) {
+  // Item lines carry sizes ("1/4-20 X 1 IN") that look like dates, so look
+  // at lines without a trailing price first.
+  const lines = String(text).split(/\r?\n/);
+  const unpriced = lines.filter((l) => !/\d[.,]\d{2}\s*-?\s*[A-Z*]{0,2}\s*$/.test(l)).join('\n');
+  return dateIn(unpriced) || dateIn(text);
+}
+
+function dateIn(text) {
   let m = text.match(/\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)/);
   if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
-  m = text.match(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b/);
+  m = text.match(/(?<![\d/.-])(\d{1,2})([/.-])(\d{1,2})\2(\d{2}|\d{4})(?![\d/.-])/);
   if (m) {
-    let y = Number(m[3]);
+    let y = Number(m[4]);
     if (y < 100) y += 2000;
-    const mo = Number(m[1]), d = Number(m[2]);
+    const mo = Number(m[1]), d = Number(m[3]);
     if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && y >= 2000 && y < 2100) return `${y}-${pad(mo)}-${pad(d)}`;
   }
   m = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2}),?\s+(20\d{2})\b/i);
@@ -90,8 +98,11 @@ const QTY_WORD = /\bqty\.?\s*[:#]?\s*(\d+)\b/i;
 const SUBTOTAL = /\bsub[\s-]?total\b/i;
 const TAX = /\b(?:sales\s*)?tax\b|\bhst\b|\bgst\b|\bvat\b/i;
 const TOTAL = /\b(?:grand\s*)?total\b|\bbalance(?:\s*due)?\b|\bamount\s*due\b|\btotal\s*due\b/i;
-const NOT_ITEM = /\b(?:sub[\s-]?total|total|tax|change(?:\s*due)?|cash|tender(?:ed)?|balance|amount\s*due|payment|paid|you\s*saved|total\s*savings|savings\s*total|items?\s*sold|#\s*items|number\s*of\s*items|rounding|tip|gratuity|refund\s*total|refund\s*due|total\s*refund|credit\s*due|store\s*credit\s*issued|visa|mc|master\s*card|amex|discover|debit|credit|ebt|gift\s*card|check|tend)\b/i;
-const DISCOUNT = /^\s*(?:\S+\s+)?(?:discount|disc|savings|coupon|instant\s*savings|markdown|promo|price\s*adj(?:ustment)?|mfr\s*coupon|mil(?:itary)?\s*disc|employee\s*disc)\b/i;
+const NOT_ITEM = /\b(?:sub[\s-]?total|total|tax|change\s*due|balance|amount\s*due|you\s*saved|total\s*savings|savings\s*total|items?\s*sold|#\s*items|number\s*of\s*items|rounding|refund\s*total|refund\s*due|total\s*refund|credit\s*due|store\s*credit\s*issued)\b/i;
+// A tender line is a payment word followed only by card/amount noise
+// ("VISA 102.96", "MC: 43.57", "CASH TEND"); "CHECK VALVE" is an item.
+const TENDER = /^\s*(?:visa|mc|master\s*card|amex|american\s*express|discover|debit|credit|ebt|gift\s*card|cash|check|change|tender(?:ed)?|tend|payment|paid|tip|gratuity)\b(?:[\s:#*xX$\d-]|\b(?:usd|card|due|sale|purchase|refund|tend(?:ered)?|amount|amt)\b)*$/i;
+const DISCOUNT = /^\s*(?:discount|savings|coupon|instant\s*savings|markdown|promo|price\s*adj(?:ustment)?|mfr\s*coupon|mil(?:itary)?\s*disc(?:ount)?|employee\s*disc(?:ount)?)\b/i;
 export const RETURN_WORDS = /\b(?:returns?|returned|refund(?:ed)?|merchandise\s*credit|store\s*credit|exchange|rtn|ret\b)/i;
 
 export function parseMoney(s) {
@@ -168,9 +179,9 @@ export function parseReceipt(text, opts = {}) {
     if (SUBTOTAL.test(before)) { subtotal = Math.abs(price.amount); continue; }
     if (TAX.test(before) && !/\btax\s*exempt\b/i.test(before)) { tax = round2((tax || 0) + Math.abs(price.amount)); continue; }
     if (TOTAL.test(before) && !/\bsavings\b/i.test(before)) { if (total == null) total = Math.abs(price.amount); continue; }
-    if (NOT_ITEM.test(before)) continue;
+    if (NOT_ITEM.test(before) || TENDER.test(before)) continue;
 
-    if (DISCOUNT.test(before) || (/\b(?:off|disc(?:ount)?|savings)\b/i.test(before) && price.amount < 0)) {
+    if (DISCOUNT.test(before) || (/^\s*(?:\S+\s+)?(?:off|disc(?:ount)?|savings)\b/i.test(before) && price.amount < 0)) {
       const prev = items[items.length - 1];
       if (prev) {
         prev.discount = round2((prev.discount || 0) + Math.abs(price.amount));
